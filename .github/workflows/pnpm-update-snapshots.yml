@@ -9,11 +9,11 @@ on:
       node_version:
         type: string
         required: false
-        default: '[16, 18, 20]'
+        default: '[18, 20]'
       pnpm_version:
         type: string
         required: false
-        default: 8.6.12
+        default: 8.15.3
       update_snapshots:
         type: boolean
         required: false
