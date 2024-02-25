@@ -45,7 +45,7 @@ jobs:
 
       - name: codecov
         if: matrix.os == 'ubuntu-latest' && matrix.node-version == 18
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
         with:
           files: ${{ inputs.coverage_files }}
           verbose: true
