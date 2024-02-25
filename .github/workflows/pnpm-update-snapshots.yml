@@ -27,7 +27,7 @@ jobs:
         os: ${{ fromJson(inputs.os) }}
         node-version: ${{ fromJson(inputs.node_version) }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v3
         with:
           version: ${{ inputs.pnpm_version }}
