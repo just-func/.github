@@ -28,7 +28,7 @@ jobs:
         node-version: ${{ fromJson(inputs.node_version) }}
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v3
+      - uses: pnpm/action-setup@v4
         with:
           version: ${{ inputs.pnpm_version }}
       - name: Use Node.js ${{ matrix.node_version }}
