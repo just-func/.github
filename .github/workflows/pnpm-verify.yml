@@ -6,46 +6,79 @@ on:
         type: string
         required: false
         default: '["ubuntu-latest", "macos-latest", "windows-latest"]'
+      # Node aliases, not numbers. `actions/setup-node` resolves `lts/*` to the current
+      # LTS and `lts/-1` to the previous one, so the matrix tracks the release train
+      # instead of going stale. This used to read '[18, 20]', which kept every caller on
+      # a Node that reached end-of-life in April 2025.
       node-version:
         type: string
         required: false
-        default: '[18, 20]'
+        default: '["lts/-1", "lts/*", "current"]'
+      # Empty by default: pnpm/action-setup reads `packageManager` from package.json,
+      # which is the single source of truth. A default here would silently override it.
       pnpm-version:
         type: string
         required: false
-        default: 8.15.3
-      coverage_files:
+      skip-codecov:
+        type: boolean
+        required: false
+        default: false
+      # Which matrix leg uploads coverage. Defaults to `lts/*` so it tracks whatever the
+      # current LTS is. A pinned number is what broke this step before: the condition
+      # read `matrix.node-version == 18`, which can never match an alias matrix, so
+      # coverage silently stopped uploading. If a caller's matrix contains no `lts/*`,
+      # set this to a value it does contain or nothing uploads.
+      codecov-node-version:
         type: string
         required: false
-        default: '**/coverage/**'
+        default: 'lts/*'
 jobs:
   verify:
     runs-on: ${{ matrix.os }}
     strategy:
+      # Report every leg. With fail-fast on, the first failure cancels the others and
+      # they report "The operation was canceled" with no error of their own, which hides
+      # which legs are actually broken.
+      fail-fast: false
       matrix:
         os: ${{ fromJson(inputs.os) }}
         node-version: ${{ fromJson(inputs.node-version) }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v3
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
         with:
           version: ${{ inputs.pnpm-version }}
       - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: ${{ matrix.node-version }}
           cache: pnpm
+
+      # --frozen-lockfile so a lockfile that does not match package.json fails here
+      # rather than being silently repaired in CI and passing.
       - name: Install Dependencies
-        run: pnpm install
-      - name: Install playwright browsers
-        run: pnpx playwright install --with-deps chromium
+        run: pnpm install --frozen-lockfile
 
       - name: Verify
         run: pnpm verify
 
+      # Coverage never gates a merge, so this must stay non-fatal: a Codecov outage must
+      # not fail `verify` and with it the required `code / all-checks` context.
       - name: codecov
-        if: matrix.os == 'ubuntu-latest' && matrix.node-version == 18
-        uses: codecov/codecov-action@v4
-        with:
-          files: ${{ inputs.coverage_files }}
-          verbose: true
+        if: inputs.skip-codecov == false && matrix.os == 'ubuntu-latest' && matrix.node-version == inputs.codecov-node-version
+        uses: codecov/codecov-action@v7
+
+  # The aggregator that produces the `code / all-checks` required status context.
+  # `if: always()` plus an explicit result check is required — without it a cancelled or
+  # skipped `verify` would let this job be skipped, and a skipped check never satisfies
+  # a required one.
+  all-checks:
+    needs: [verify]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: All checks passed
+        run: |
+          if [[ "${{ needs.verify.result }}" != "success" ]]; then
+            exit 1
+          fi
