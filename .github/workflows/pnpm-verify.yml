@@ -67,6 +67,8 @@ jobs:
       - name: codecov
         if: inputs.skip-codecov == false && matrix.os == 'ubuntu-latest' && matrix.node-version == inputs.codecov-node-version
         uses: codecov/codecov-action@v7
+        # A coverage upload must never fail CI: the tests are the gate.
+        continue-on-error: true
 
   # The aggregator that produces the `code / all-checks` required status context.
   # `if: always()` plus an explicit result check is required — without it a cancelled or
