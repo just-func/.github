@@ -27,8 +27,9 @@ name: pnpm-release-changeset-oidc
 # CI_GITHUB_TOKEN and NPM_TOKEN are long-lived credentials that expire silently and are
 # worth stealing. OIDC credentials are minted per run and last minutes.
 #
-# Mirrors cyberuni/.github and unional/.github's workflow of the same name; the
-# executable YAML is identical. Change all or none.
+# Mirrors cyberuni/.github and unional/.github's workflow of the same name. The
+# executable YAML matches cyberuni's; unional's lacks the `ci-workflow` input and the
+# CI dispatch step. Change all or none.
 #
 # Added alongside pnpm-release-changeset.yml rather than replacing it, so repos that have
 # not migrated keep working.
